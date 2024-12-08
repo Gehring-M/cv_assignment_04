@@ -61,6 +61,7 @@ struct
     /* shader */
     ShaderProgram shaderColor;
     ShaderProgram shaderNormal;
+    ShaderProgram shaderFlag;
     eRenderMode renderMode;
 } sScene;
 
@@ -205,8 +206,9 @@ void sceneInit(float width, float height)
     sScene.planet = planetLoad("assets/planet/cute-little-planet.obj");
 
     /* load shader from file */
-    sScene.shaderColor = shaderLoad("shader/flag.vert", "shader/color.frag");
-    sScene.shaderNormal = shaderLoad("shader/flag.vert", "shader/normal.frag");
+    sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
+    sScene.shaderNormal = shaderLoad("shader/default.vert", "shader/normal.frag");
+    sScene.shaderFlag = shaderLoad("shader/flag.vert", "shader/color.frag");
 
     sScene.renderMode = eRenderMode::COLOR;
 }
