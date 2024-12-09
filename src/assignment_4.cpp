@@ -61,7 +61,8 @@ struct
     /* shader */
     ShaderProgram shaderColor;
     ShaderProgram shaderNormal;
-    ShaderProgram shaderFlag;
+    ShaderProgram shaderFlagColor;
+    ShaderProgram shaderFlagNormal;
     eRenderMode renderMode;
 } sScene;
 
@@ -208,7 +209,8 @@ void sceneInit(float width, float height)
     /* load shader from file */
     sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
     sScene.shaderNormal = shaderLoad("shader/default.vert", "shader/normal.frag");
-    sScene.shaderFlag = shaderLoad("shader/flag.vert", "shader/color.frag");
+    sScene.shaderFlagColor = shaderLoad("shader/flag.vert", "shader/color.frag");
+    sScene.shaderFlagNormal = shaderLoad("shader/flag.vert", "shader/normal.frag");
 
     sScene.renderMode = eRenderMode::COLOR;
 }
@@ -295,26 +297,42 @@ void renderColor(ShaderProgram& shader, bool renderNormal) {
         }
     }
 
-    /* render flag */
-    {
-        auto& model = sScene.plane.flag.model;
-        shaderUniform(shader, "uModel", sScene.plane.transformation * sScene.plane.flagModelMatrix * sScene.plane.flagNegativeRotation);
-        glBindVertexArray(model.mesh.vao);
-        for(auto& material : model.material)
-        {
-            if (!renderNormal)
-            {
-                /* set material properties */
-                shaderUniform(shader, "uMaterial.diffuse", material.diffuse);
-            }
-            else
-            {
-                shaderUniform(shader, "isFlag", true);
-            }
-            glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
-        }
-    }
+    /* cleanup opengl state */
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
 
+/**
+ * function for rendering the flag using another vertex shader
+ * this way, the simulation of the flag is executed on the GPU instead of the CPU
+ */
+void renderFlag(ShaderProgram& flagShader, bool renderNormal) {
+    /* setup */
+    Matrix4D proj = cameraProjection(sScene.camera);
+    Matrix4D view = cameraView(sScene.camera);
+    /* shader program and model initializations */
+    glUseProgram(flagShader.id);
+    auto& model = sScene.plane.flag.model;
+    /* bind model */
+    glBindVertexArray(model.mesh.vao);
+    /* shader uniforms */
+    shaderUniform(flagShader, "uProj",  proj);
+    shaderUniform(flagShader, "uView",  view);
+    shaderUniform(flagShader, "uModel", sScene.plane.transformation * sScene.plane.flagModelMatrix * sScene.plane.flagNegativeRotation);
+    /* iterate over material */
+    for(auto& material : model.material)
+    {
+        if (!renderNormal)
+        {
+            /* set material properties */
+            shaderUniform(flagShader, "uMaterial.diffuse", material.diffuse);
+        }
+        else
+        {
+            shaderUniform(flagShader, "isFlag", true);
+        }
+        glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
+    }
     /* cleanup opengl state */
     glBindVertexArray(0);
     glUseProgram(0);
@@ -332,10 +350,12 @@ void sceneDraw()
         if (sScene.renderMode == eRenderMode::COLOR)
         {
             renderColor(sScene.shaderColor, false);
+            renderFlag(sScene.shaderFlagColor, false);
         }
         else if (sScene.renderMode == eRenderMode::NORMAL)
         {
             renderColor(sScene.shaderNormal, true);
+            renderFlag(sScene.shaderFlagNormal, true);
         }
     }
     glCheckError();
