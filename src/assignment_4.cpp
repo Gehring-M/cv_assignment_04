@@ -8,6 +8,15 @@
 #include "planet.h"
 #include "plane.h"
 
+struct VectorizedWaveParams 
+{
+    Vector3D amplitude;
+    Vector3D phi;
+    Vector3D omega;
+    Vector3D directionX;
+    Vector3D directionY;
+};
+
 enum eCameraFollow
 {
     PLANE,
@@ -240,6 +249,33 @@ void sceneUpdate(float dt)
     }
 }
 
+/**
+ * function to simplify vectorizing process 
+ * converts WaveParams in a vectorized format (used by the GPU)
+ */
+VectorizedWaveParams vectorizeWaveParams(WaveParams waveParams[3]) {
+    // - setup
+    const int waveParamCount = 3;
+    VectorizedWaveParams vParams = {
+        .amplitude  = Vector3D(0.0f, 0.0f, 0.0f),
+        .phi        = Vector3D(0.0f, 0.0f, 0.0f),
+        .omega      = Vector3D(0.0f, 0.0f, 0.0f),
+        .directionX = Vector3D(0.0f, 0.0f, 0.0f),
+        .directionY = Vector3D(0.0f, 0.0f, 0.0f)
+    };
+    // - fill values by iterating over waveParams
+    for (int i = 0; i < waveParamCount; i++) 
+    {
+        vParams.amplitude[i] = waveParams[i].amplitude;
+        vParams.phi[i] = waveParams[i].phi;
+        vParams.omega[i] = waveParams[i].omega;
+        vParams.directionX[i] = waveParams[i].direction.x;
+        vParams.directionY[i] = waveParams[i].direction.y;
+    }
+    // - return vectorized values
+    return vParams;
+}
+
 /* 
  * function to render all objects in the scene using their diffuse colors or their normals
  * (depending on shader program and renderNormal flag)
@@ -316,10 +352,19 @@ void renderFlag(ShaderProgram& flagShader, bool renderNormal) {
     auto& model = sScene.plane.flag.model;
     /* bind model */
     glBindVertexArray(model.mesh.vao);
-    /* shader uniforms */
+    /* shader uniforms - for MVP matrix (is needed to position the flag correctly) */
     shaderUniform(flagShader, "uProj",  proj);
     shaderUniform(flagShader, "uView",  view);
     shaderUniform(flagShader, "uModel", sScene.plane.transformation * sScene.plane.flagModelMatrix * sScene.plane.flagNegativeRotation);
+    /* vectorize wave parameters of flag simulation for GPU computation */
+    VectorizedWaveParams waveParams = vectorizeWaveParams(sScene.plane.flagSim.parameter);
+    // shader uniforms - storing parameters of the different waves
+    shaderUniform(flagShader, "uAccumTime", sScene.plane.flagSim.accumTime);
+    shaderUniform(flagShader, "uAmplitude", waveParams.amplitude);
+    shaderUniform(flagShader, "uPhi", waveParams.phi);
+    shaderUniform(flagShader, "uOmega", waveParams.omega);
+    shaderUniform(flagShader, "uDirectionX", waveParams.directionX);
+    shaderUniform(flagShader, "uDirectionY", waveParams.directionY);
     /* iterate over material */
     for(auto& material : model.material)
     {
