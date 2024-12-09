@@ -349,22 +349,32 @@ void renderFlag(ShaderProgram& flagShader, bool renderNormal) {
     Matrix4D view = cameraView(sScene.camera);
     /* shader program and model initializations */
     glUseProgram(flagShader.id);
-    auto& model = sScene.plane.flag.model;
-    /* bind model */
-    glBindVertexArray(model.mesh.vao);
     /* shader uniforms - for MVP matrix (is needed to position the flag correctly) */
-    shaderUniform(flagShader, "uProj",  proj);
-    shaderUniform(flagShader, "uView",  view);
+    shaderUniform(flagShader, "uProj", proj);
+    shaderUniform(flagShader, "uView", view);
     shaderUniform(flagShader, "uModel", sScene.plane.transformation * sScene.plane.flagModelMatrix * sScene.plane.flagNegativeRotation);
     /* vectorize wave parameters of flag simulation for GPU computation */
     VectorizedWaveParams waveParams = vectorizeWaveParams(sScene.plane.flagSim.parameter);
     // shader uniforms - storing parameters of the different waves
-    shaderUniform(flagShader, "uAccumTime", sScene.plane.flagSim.accumTime);
+    float accumTime = sScene.plane.flagSim.accumTime;
+    // shaderUniform(flagShader, "uAccumTime", accumTime);
+
+    GLint location = glGetUniformLocation(flagShader.id, "uAccumTime");
+
+    if (location == -1) {
+        std::cerr << "Couldn't find 'uAccumtime' as location" << std::endl;
+    }
+
     shaderUniform(flagShader, "uAmplitude", waveParams.amplitude);
     shaderUniform(flagShader, "uPhi", waveParams.phi);
     shaderUniform(flagShader, "uOmega", waveParams.omega);
     shaderUniform(flagShader, "uDirectionX", waveParams.directionX);
     shaderUniform(flagShader, "uDirectionY", waveParams.directionY);
+
+    /* extract model */
+    auto& model = sScene.plane.flag.model;
+    /* bind model */
+    glBindVertexArray(model.mesh.vao);
     /* iterate over material */
     for(auto& material : model.material)
     {
