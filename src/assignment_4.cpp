@@ -359,17 +359,36 @@ void renderFlag(ShaderProgram& flagShader, bool renderNormal) {
     float accumTime = sScene.plane.flagSim.accumTime;
     // shaderUniform(flagShader, "uAccumTime", accumTime);
 
-    GLint location = glGetUniformLocation(flagShader.id, "uAccumTime");
+    char* uniforms[8] = { "uProj", "uView", "uModel", "uAmplitude", "uPhi", "uOmega", "uDirectionX", "uDirectionY" };
+    int return_values[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    if (location == -1) {
-        std::cerr << "Couldn't find 'uAccumtime' as location" << std::endl;
+    for (int i = 0; i < 8; i++) {
+        return_values[i] = glGetUniformLocation(flagShader.id, uniforms[i]);
+        std::cout << uniforms[i] << " -- found location -- " << return_values[i] << " -- " << (return_values[i] == -1) << std::endl;
     }
 
-    shaderUniform(flagShader, "uAmplitude", waveParams.amplitude);
-    shaderUniform(flagShader, "uPhi", waveParams.phi);
-    shaderUniform(flagShader, "uOmega", waveParams.omega);
-    shaderUniform(flagShader, "uDirectionX", waveParams.directionX);
-    shaderUniform(flagShader, "uDirectionY", waveParams.directionY);
+    GLint numUniforms = 0;
+    glGetProgramiv(flagShader.id, GL_ACTIVE_UNIFORMS, &numUniforms);
+
+    for (GLint i = 0; i < numUniforms; i++) {
+        char name[256];
+        GLsizei length = 0;
+        GLint size = 0;
+        GLenum type = 0;
+
+        glGetActiveUniform(flagShader.id, i, sizeof(name), &length, &size, &type, name);
+        std::cout << "Uniform #" << i << ": " << name << " (type: " << type << ", size: " << size << ")\n";
+    }
+
+
+
+    std::cout << std::endl << std::endl;
+
+    // shaderUniform(flagShader, "uAmplitude", waveParams.amplitude);
+    // shaderUniform(flagShader, "uPhi", waveParams.phi);
+    // shaderUniform(flagShader, "uOmega", waveParams.omega);
+    // shaderUniform(flagShader, "uDirectionX", waveParams.directionX);
+    // shaderUniform(flagShader, "uDirectionY", waveParams.directionY);
 
     /* extract model */
     auto& model = sScene.plane.flag.model;
