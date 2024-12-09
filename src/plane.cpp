@@ -155,12 +155,6 @@ void planeMove(Plane &plane, bool control[], float dt)
 
     /* update flag simulation */
     updateSimulation(plane.flagSim, getSpeedFactor(plane), dt);
-
-    /*
-     * animate flag on cpu 
-     * TODO - Remove this part if flag animation in shader is implemented/
-     */
-    animateFlag(plane.flag, plane.flagSim);
 }
 
 Vector3D getPlaneTurningVector(Plane &plane)

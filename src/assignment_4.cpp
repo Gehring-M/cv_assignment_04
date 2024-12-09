@@ -218,6 +218,7 @@ void sceneInit(float width, float height)
 /* function to move and update objects in scene (e.g., rotate cube according to user input) */
 void sceneUpdate(float dt)
 {
+    /* --->| this function call is executing the flag simulation |<--- */
     planeMove(sScene.plane, sInput.keyPressed, dt);
     planetRotate(sScene.planet, getPlaneTurningVector(sScene.plane), sScene.plane.speed, dt);
 
@@ -415,6 +416,8 @@ int main(int argc, char **argv)
     /* delete opengl shader and buffers */
     shaderDelete(sScene.shaderColor);
     shaderDelete(sScene.shaderNormal);
+    shaderDelete(sScene.shaderFlagColor);
+    shaderDelete(sScene.shaderFlagNormal);
     planeDelete(sScene.plane);
     planetDelete(sScene.planet);
 
